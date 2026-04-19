@@ -19,3 +19,21 @@ export const loadAllMessages = (sessionFile: string, full: boolean): LoadedMessa
   const rawMessages = messageEntries.map((e) => e.message);
   return { rendered, rawMessages };
 };
+
+/** Read and render a single message from a JSONL file by 1-based line number. */
+export const loadMessageAtLine = (
+  sessionPath: string,
+  lineNumber: number,
+): RenderedEntry | null => {
+  const content = readFileSync(sessionPath, "utf-8");
+  const lines = content.split("\n");
+  const line = lines[lineNumber - 1];
+  if (!line?.trim()) return null;
+  try {
+    const parsed = JSON.parse(line);
+    if (parsed.type !== "message" || !parsed.message) return null;
+    return renderMessage(parsed.message, lineNumber - 1, true);
+  } catch {
+    return null;
+  }
+};

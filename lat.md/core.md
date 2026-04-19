@@ -142,12 +142,13 @@ Renders messages for recall/search display.
 Loads messages from session JSONL file.
 
 - [[src/core/load-messages.ts#loadAllMessages]] - Load and render messages from session file
+- [[src/core/load-messages.ts#loadMessageAtLine]] - Read and render a single message by 1-based line number
 
-Returns both rendered entries and raw messages for search.
+Returns both rendered entries and raw messages for search. `loadMessageAtLine` reads a specific JSONL line directly (used by expand mode to avoid index remapping between ripgrep line numbers and message-only indices).
 
 ## mark-complete.ts
 
-(This module appears in some contexts but was not read - may not exist in current version.)
+This module was referenced in earlier design discussions but does not exist in the current codebase. The concept was superseded by the inline compaction completion logic in [[src/hooks/before-compact.ts#registerBeforeCompactHook]].
 
 ## report.ts
 
@@ -182,6 +183,42 @@ Features:
 Formats recall search results for display.
 
 - [[src/core/format-recall.ts#formatRecallOutput]] - Format entries with optional query/header
+
+## format-search.ts
+
+Formats cross-session search results as tables grouped by project (cwd).
+
+- [[src/core/format-search.ts#formatSearchOutput]] - Group ripgrep matches by project, each session shown once with date/id/path/prompt
+- [[src/core/format-search.ts#formatSearchResultText]] - Render markdown tables grouped by project
+- [[src/core/format-search.ts#formatExpandedSearchOutput]] - Format expanded entries grouped by session
+
+## open-browser.ts
+
+Exports a session as a standalone HTML file and opens it in the system browser.
+
+- [[src/core/open-browser.ts#openSessionInBrowser]] - Export JSONL → HTML via Pi's `exportFromFile` (deep dynamic import), then open with `xdg-open`/`open`/`start`
+
+Uses dynamic import to avoid load-time failure if Pi's internal API changes.
+Writes HTML to `/tmp/pi-vcc-session-<fullSessionId>.html`.
+Non-blocking: `exec()` fires the open command without waiting for the browser to close.
+
+## session-finder.ts
+
+Discovers Pi sessions via `SessionManager.list()`/`listAll()`. Matches session IDs flexibly: internal UUID, path-derived timestamp_UUID, or prefix.
+
+- [[src/core/session-finder.ts#findSessions]] - Find and filter sessions by scope, ID, age, with flexible ID matching
+
+## rg-search.ts
+
+Ripgrep wrapper for searching across session JSONL files with structured JSON output.
+
+- [[src/core/rg-search.ts#findRgPath]] - Locate the ripgrep binary (checks common paths, then `which rg`)
+- [[src/core/rg-search.ts#extractSessionIdFromPath]] - Extract session ID from JSONL file path
+- [[src/core/rg-search.ts#rgSearch]] - Execute ripgrep and parse matches
+
+Filters output to only `"type":"message"` entries (skips compaction, session header lines).
+Returns structured `RgSearchResult` with per-session match counts.
+Handles ripgrep exit code 1 (no matches) as a non-error.
 
 ## summarize.ts
 

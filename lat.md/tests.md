@@ -106,7 +106,7 @@ Empty blocks produce empty string.
 
 Outputs [user] and [assistant] headers with content.
 
-### compileBrief collapses tool calls to one-liners under [assistant]
+### compileBrief collapses tool calls to one-liners under assistant
 
 Tool calls formatted as "* ToolName "args"".
 
@@ -325,6 +325,226 @@ Fallback preserves query.
 ### searchEntries snippet handles match at beginning
 
 Start-of-text handled correctly.
+
+## format-search.test.ts
+
+Tests cross-session search result formatting grouped by project, and expand output.
+
+### formatSearchOutput formats header with match count and project count
+
+Match count, session count, and project count shown in header.
+
+### formatSearchOutput formats no-matches header
+
+No matches message.
+
+### formatSearchOutput groups sessions by project cwd
+
+Sessions with same cwd grouped under same project heading.
+
+### formatSearchOutput includes session date id path and prompt
+
+Each session row contains date, short ID, path, and firstMessage as prompt.
+
+### formatSearchOutput tracks match count and entry indices per session
+
+Match count and entry indices stored per session row for expand references.
+
+### formatSearchOutput truncates long prompts
+
+Prompts capped at 120 chars.
+
+### formatSearchOutput shows pagination footer
+
+Page hint shown when more results.
+
+### formatSearchOutput hides footer on last page
+
+No footer when all results shown.
+
+### formatSearchOutput skips unknown sessions
+
+Sessions not in sessionInfos map are excluded.
+
+### formatSearchOutput sorts sessions within project by date descending
+
+Newest sessions first within each project group.
+
+### formatSearchOutput sorts projects alphabetically
+
+Project groups ordered by cwd path.
+
+### formatSearchResultText produces markdown table grouped by project with full session ID and matches
+
+Output contains project headings, table headers, full session IDs, match entry indices, and session prompts.
+
+### formatSearchResultText escapes pipe characters in prompts
+
+Pipe chars in prompts escaped to avoid breaking markdown table.
+
+### formatExpandedSearchOutput formats single session with single entry
+
+Session header + entry content.
+
+### formatExpandedSearchOutput groups entries by session
+
+Multi-session grouping.
+
+### formatExpandedSearchOutput shows empty message when no entries and no errors
+
+Default message.
+
+### formatExpandedSearchOutput shows errors when no entries expanded
+
+Error list displayed.
+
+### formatExpandedSearchOutput shows warnings alongside successful expansions
+
+Warnings section appended.
+
+### formatExpandedSearchOutput uses singular for single session
+
+"entry" and "session" singular forms.
+
+### formatExpandedSearchOutput uses plural for multiple sessions
+
+"entries" and "sessions" plural forms.
+
+## session-finder.test.ts
+
+Tests session discovery, filtering by ID (internal, path-derived, and prefix), age filtering, and sorting.
+
+### filters by sessionIds
+
+Direct ID match filters correctly.
+
+### filters by maxAge
+
+Sessions older than maxAge excluded.
+
+### sorts by modified desc
+
+Newest sessions sorted first.
+
+### caps at maxSessions
+
+Session list truncated to cap.
+
+### returns empty array when no sessions match filters
+
+No matches yields empty array.
+
+### matches session by path-derived ID timestamp uuid format
+
+Path-derived IDs (timestamp_uuid) correctly match sessions where s.id is just the UUID portion.
+
+### matches session by short UUID prefix
+
+First 8 chars of UUID match the full session.
+
+## search.test.ts
+
+Tests vcc-search command argument parsing.
+
+### parseArgs parses simple query
+
+Query string extracted.
+
+### parseArgs parses --scope flag
+
+Scope option recognized.
+
+### parseArgs parses inline page:N
+
+Inline pagination parsed.
+
+### parseArgs parses --page flag
+
+--page flag sets page number.
+
+### parseArgs parses all flags
+
+All flags combined: query, --scope, --max-results, --page.
+
+### parseArgs handles empty args
+
+Empty string produces empty query with no options set.
+
+### parseArgs handles regex query
+
+Query containing `|` regex metacharacter passed through unchanged.
+
+## rg-search.test.ts
+
+Tests the ripgrep wrapper against real JSONL fixture files in a temp directory.
+
+### rgSearch finds matches across files
+
+Query matching content in multiple JSONL files returns one match per file.
+
+### rgSearch returns empty for no matches
+
+Query with no matches returns empty array without error.
+
+### rgSearch respects maxResultsPerSession
+
+`maxResultsPerSession: 1` limits matches from a single session to at most one.
+
+### rgSearch respects maxTotalResults
+
+`maxTotalResults: 2` caps the total matches across all sessions.
+
+### rgSearch extracts session ID from path
+
+`extractSessionIdFromPath` strips directory and `.jsonl` extension from full path.
+
+### rgSearch handles empty session paths
+
+Empty path list returns zero matches and zero sessions searched.
+
+### rgSearch computes entry index from line number
+
+`entryIndex` equals `lineNumber - 1` for every match.
+
+### rgSearch skips non-message entries
+
+Compaction lines containing `auth bug` in summary text are excluded; only `"type":"message"` lines returned.
+
+### rgSearch handles empty query
+
+Blank query returns an `error` field containing "Empty query".
+
+### rgSearch handles invalid regex
+
+Malformed regex pattern `[` returns an `error` field containing "Invalid regex".
+
+## load-messages.test.ts
+
+Tests JSONL message loading functions.
+
+### loadMessageAtLine reads a message at the correct line number
+
+1-based line number resolved to correct message.
+
+### loadMessageAtLine returns null for non-message line
+
+Session header returns null.
+
+### loadMessageAtLine returns null for out-of-bounds line number
+
+Out of range returns null.
+
+### loadMessageAtLine returns full untruncated content
+
+Full mode renders without clipping.
+
+### loadMessageAtLine returns null for invalid JSON line
+
+Malformed JSON returns null.
+
+### loadMessageAtLine returns null for compaction entry
+
+Non-message types skipped.
 
 ## report.test.ts
 

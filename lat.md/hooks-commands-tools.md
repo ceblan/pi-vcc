@@ -93,6 +93,94 @@ Behavior:
 4. With query: BM25 or regex search, 5 results per page
 5. Returns as text content
 
+## Tool: search.ts
+
+The `vcc_search` tool provides cross-session search with expand support.
+
+- [[src/tools/search.ts#registerSearchTool]] - Registration
+
+Tool parameters:
+```typescript
+{
+  query: string,              // Search terms or regex
+  scope?: "project" | "all",  // Search scope
+  sessions?: string[],         // Limit to specific session IDs
+  maxResults?: number,         // Max total results (default: 30)
+  maxPerSession?: number,      // Max per session (default: 3)
+  page?: number,               // Pagination (1-based)
+  expand?: { session: string, entry: number }[],  // Expand entries for full content
+}
+```
+
+Behavior:
+1. Normal mode: ripgrep search across sessions, grouped results with pagination
+2. Expand mode (expand provided): skip search, load specific entries by line number
+3. Uses `loadMessageAtLine` to read JSONL directly by line number (avoids index remapping)
+4. Session ID resolution: supports full IDs and 8-char truncated prefixes
+5. Groups expanded entries by session with warnings for missing entries
+
+## Command: vcc-search.ts
+
+The `/vcc-search` slash command searches sessions interactively with a TUI overlay (when UI available) or falls back to plain text.
+
+- [[src/commands/vcc-search.ts#registerVccSearchCommand]] - Registration
+
+Usage:
+```
+/vcc-search <query> [--scope all|project] [--page N]
+```
+
+Behavior with TUI (`ctx.hasUI = true`):
+1. Parse args, find sessions, run ripgrep, format results
+2. Show interactive [[src/ui/search-overlay.ts#showSearchOverlay]] overlay — returns `OverlayResult`
+3. User navigates with ↑↓, presses `e` (inject) or `w` (view in browser)
+4. `kind === "view"`: call [[src/core/open-browser.ts#openSessionInBrowser]], notify, return
+5. `kind === "inject"`: load session messages via `loadAllMessages`, compile summary via `compile`, write `vcc.md`, inject `vcc-context` message with `triggerTurn: true`
+
+Behavior without TUI (`ctx.hasUI = false`):
+- Sends text table of results as `vcc-search` message (same as before)
+
+## UI: search-overlay.ts
+
+TUI overlay component for `/vcc-search` — visual session browser with fuzzy search.
+
+- [[src/ui/search-overlay.ts#showSearchOverlay]] - Public API — returns `Promise<OverlayResult>`
+
+Exported types:
+- `OverlayResult = { kind: "inject"; row: FormattedSessionRow } | { kind: "view"; row: FormattedSessionRow } | null`
+
+Layout:
+- Flat list of project-headers (dim, non-selectable) + session-rows (selectable)
+- Each session row: date + 8-char ID + match count (line 1), prompt (line 2, dim)
+- Scroll indicator when list exceeds `MAX_VISIBLE_ROWS = 10`
+- Search bar (when active): `◎  <query>│` or `◎  │type to filter...` placeholder
+- Footer (normal mode): `↑↓ navigate  / search  o compress+inject  p view in browser  esc close`
+- Footer (search mode): `type to filter  ↑↓ navigate  alt+o inject  alt+p view  esc exit search`
+
+Key bindings (normal mode):
+- `↑` / `↓` — navigate session rows (project-headers are skipped)
+- `/` — activate fuzzy search mode
+- `o` or `alt+o` — compress+inject: returns `{ kind: "inject", row }` to caller
+- `p` or `alt+p` — view in browser: returns `{ kind: "view", row }` to caller
+- `esc` — cancel → returns `null`
+
+Key bindings (search mode):
+- Printable characters — append to search query
+- `backspace` — delete last character from query
+- `↑` / `↓` — navigate filtered results
+- `alt+o` — inject selected session
+- `alt+p` — view selected session in browser
+- `esc` — exit search mode (returns to normal mode, resets selection)
+
+Fuzzy search:
+- Uses `fuzzyFilter` from `@mariozechner/pi-tui` with `getText` callback
+- Searches across: prompt, date, sessionId, project name
+- When active, only session-rows shown (no project-headers)
+- Empty query shows all items (unfiltered)
+- "No matching sessions" shown when filter yields no results
+
+Follows `pi-token-burden/src/report-view.ts` pattern: ANSI manual rendering, `ctx.ui.custom()`, `tui.requestRender()` after every input.
+
 ## sections.ts
 
 Section data structure used by build-sections and format.
