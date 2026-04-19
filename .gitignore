@@ -7,3 +7,6 @@ docs/
 run_compare.ts
 .pi-mux-state.json
 research/
+.pi
+/lat.md/journals/
+/AGENTS.md
