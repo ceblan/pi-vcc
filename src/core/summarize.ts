@@ -3,7 +3,7 @@ import type { FileOps } from "../types";
 import { normalize } from "./normalize";
 import { filterNoise } from "./filter-noise";
 import { buildSections } from "./build-sections";
-import { formatSummary, capBrief } from "./format";
+import { formatSummary, capBrief, RECALL_NOTE } from "./format";
 
 export interface CompileInput {
   messages: Message[];
@@ -11,7 +11,7 @@ export interface CompileInput {
   fileOps?: FileOps;
 }
 
-const HEADER_NAMES = ["Session Goal", "Files And Changes", "Outstanding Context", "User Preferences"];
+const HEADER_NAMES = ["Session Goal", "Files And Changes", "Commits", "Outstanding Context", "User Preferences"];
 
 const SEPARATOR = "\n\n---\n\n";
 
@@ -56,7 +56,7 @@ const mergeHeaderSection = (header: string, prev: string, fresh: string): string
   const prevLines = prev.split("\n").filter(isClean);
   const freshLines = fresh.split("\n").filter(isClean);
   const combined = [...new Set([...prevLines, ...freshLines])];
-  const CAP = header === "Session Goal" ? 8 : 15;
+  const CAP = header === "Session Goal" ? 8 : header === "Commits" ? 8 : 15;
   const capped = combined.length > CAP ? combined.slice(-CAP) : combined;
   if (capped.length === 0) return "";
   return `[${header}]\n${capped.join("\n")}`;
@@ -138,6 +138,20 @@ export const compile = (input: CompileInput): string => {
   const blocks = filterNoise(normalize(input.messages));
   const data = buildSections({ blocks });
   const fresh = formatSummary(data);
-  const merged = input.previousSummary ? mergePrevious(input.previousSummary, fresh) : fresh;
-  return merged;
+  // Strip any legacy RECALL_NOTE baked into prev summary (pre-fix format)
+  // so merge doesn't re-stack it inside the brief.
+  const prev = input.previousSummary
+    ? stripRecallNote(input.previousSummary)
+    : undefined;
+  const merged = prev ? mergePrevious(prev, fresh) : fresh;
+  if (!merged) return "";
+  return merged + SEPARATOR + RECALL_NOTE;
+};
+
+const stripRecallNote = (text: string): string => {
+  // Remove trailing RECALL_NOTE (and any separators surrounding it) if present.
+  // Handles both current format (---\n\nNOTE) and bare trailing NOTE.
+  const idx = text.lastIndexOf(RECALL_NOTE);
+  if (idx < 0) return text;
+  return text.slice(0, idx).replace(/\s*(?:\n\n---\n\n)?\s*$/, "").trimEnd();
 };

@@ -1,95 +1,51 @@
-import { describe, it, expect, afterAll } from "vitest";
-import { loadMessageAtLine } from "../src/core/load-messages";
-import { writeFileSync, mkdirSync, rmSync } from "fs";
+import { describe, it, expect } from "bun:test";
+import { mkdtempSync, writeFileSync, rmSync } from "fs";
+import { tmpdir } from "os";
 import { join } from "path";
+import { loadAllMessages } from "../src/core/load-messages";
 
-const TMP_DIR = "/tmp/vcc-test-load-message";
-const TMP_FILE = join(TMP_DIR, "test-session.jsonl");
+describe("loadAllMessages", () => {
+  it("loads all message entries when no lineage filter is provided", () => {
+    const dir = mkdtempSync(join(tmpdir(), "pi-vcc-load-all-"));
+    const file = join(dir, "session.jsonl");
+    try {
+      const lines = [
+        JSON.stringify({ type: "session", id: "s1" }),
+        JSON.stringify({ type: "message", id: "m1", message: { role: "user", content: "u1" } }),
+        JSON.stringify({ type: "custom", id: "c1", customType: "x", data: {} }),
+        JSON.stringify({ type: "message", id: "m2", message: { role: "assistant", content: [{ type: "text", text: "a1" }] } }),
+        JSON.stringify({ type: "message", id: "m3", message: { role: "toolResult", toolName: "read", content: [{ type: "text", text: "ok" }] } }),
+      ];
+      writeFileSync(file, lines.join("\n") + "\n", "utf8");
 
-// Helper: write JSONL lines to temp file
-const writeJsonl = (lines: object[]) => {
-  mkdirSync(TMP_DIR, { recursive: true });
-  writeFileSync(TMP_FILE, lines.map((l) => JSON.stringify(l)).join("\n") + "\n");
-};
-
-describe("loadMessageAtLine", () => {
-  afterAll(() => { rmSync(TMP_DIR, { recursive: true, force: true }); });
-
-  it("reads a message at the correct line number", () => {
-    writeJsonl([
-      { type: "session", id: "test" },
-      { type: "message", message: { role: "user", content: "Hello world" } },
-      { type: "message", message: { role: "assistant", content: "Hi there" } },
-    ]);
-    // Line 2 (1-based) = user message
-    const result = loadMessageAtLine(TMP_FILE, 2);
-    expect(result).not.toBeNull();
-    expect(result!.role).toBe("user");
-    expect(result!.summary).toBe("Hello world");
-    expect(result!.index).toBe(1); // lineNumber - 1
+      const loaded = loadAllMessages(file, false);
+      expect(loaded.rendered).toHaveLength(3);
+      expect(loaded.rawMessages).toHaveLength(3);
+      expect(loaded.entryIds).toEqual(["m1", "m2", "m3"]);
+      expect(loaded.rendered.map((e) => e.index)).toEqual([0, 1, 2]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
-  it("returns null for non-message line (session header)", () => {
-    writeJsonl([
-      { type: "session", id: "test" },
-      { type: "message", message: { role: "user", content: "Hello" } },
-    ]);
-    const result = loadMessageAtLine(TMP_FILE, 1); // session header
-    expect(result).toBeNull();
-  });
+  it("filters messages by allowed lineage entry IDs and preserves original message index", () => {
+    const dir = mkdtempSync(join(tmpdir(), "pi-vcc-load-filter-"));
+    const file = join(dir, "session.jsonl");
+    try {
+      const lines = [
+        JSON.stringify({ type: "message", id: "m1", message: { role: "user", content: "u1" } }),
+        JSON.stringify({ type: "message", id: "m2", message: { role: "assistant", content: [{ type: "text", text: "a1" }] } }),
+        JSON.stringify({ type: "message", id: "m3", message: { role: "user", content: "u2" } }),
+      ];
+      writeFileSync(file, lines.join("\n") + "\n", "utf8");
 
-  it("returns null for out-of-bounds line number", () => {
-    writeJsonl([
-      { type: "message", message: { role: "user", content: "Hello" } },
-    ]);
-    const result = loadMessageAtLine(TMP_FILE, 99);
-    expect(result).toBeNull();
-  });
-
-  it("returns full untruncated content", () => {
-    const longText = "A".repeat(500);
-    writeJsonl([
-      { type: "message", message: { role: "user", content: longText } },
-    ]);
-    const result = loadMessageAtLine(TMP_FILE, 1);
-    expect(result!.summary).toBe(longText); // Not truncated
-  });
-
-  it("returns null for invalid JSON line", () => {
-    mkdirSync(TMP_DIR, { recursive: true });
-    writeFileSync(TMP_FILE, "not-json\n{\"type\":\"message\",\"message\":{\"role\":\"user\",\"content\":\"ok\"}}\n");
-    const result = loadMessageAtLine(TMP_FILE, 1);
-    expect(result).toBeNull();
-  });
-
-  it("returns null for compaction entry", () => {
-    writeJsonl([
-      { type: "session", id: "test" },
-      { type: "message", message: { role: "user", content: "Hello" } },
-      { type: "compaction", summary: "Compacted" },
-    ]);
-    const result = loadMessageAtLine(TMP_FILE, 3); // compaction line
-    expect(result).toBeNull();
-  });
-
-  it("returns null for empty line", () => {
-    writeJsonl([
-      { type: "message", message: { role: "user", content: "Hello" } },
-    ]);
-    // Line after the last entry is empty (trailing newline)
-    const result = loadMessageAtLine(TMP_FILE, 2);
-    expect(result).toBeNull();
-  });
-
-  it("reads first message when session header precedes it", () => {
-    writeJsonl([
-      { type: "session", id: "test", version: 3 },
-      { type: "message", message: { role: "user", content: "First message" } },
-    ]);
-    const result = loadMessageAtLine(TMP_FILE, 2);
-    expect(result).not.toBeNull();
-    expect(result!.role).toBe("user");
-    expect(result!.summary).toBe("First message");
-    expect(result!.index).toBe(1);
+      const loaded = loadAllMessages(file, false, new Set(["m2"]));
+      expect(loaded.rendered).toHaveLength(1);
+      expect(loaded.rawMessages).toHaveLength(1);
+      expect(loaded.entryIds).toEqual(["m2"]);
+      expect(loaded.rendered[0].index).toBe(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

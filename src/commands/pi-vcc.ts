@@ -16,7 +16,7 @@ export const registerPiVccCommand = (pi: ExtensionAPI) => {
           const stats = getLastCompactionStats();
           if (stats) {
             ctx.ui.notify(
-              `Compacted ${stats.summarized} msgs | Kept last ${stats.kept} msgs [~${formatTokens(stats.keptTokensEst)} toks]`,
+              `pi-vcc: ${stats.summarized} source entries processed; tail kept ${stats.kept} (~${formatTokens(stats.keptTokensEst)} tok).`,
               "info",
             );
           } else {
@@ -25,7 +25,7 @@ export const registerPiVccCommand = (pi: ExtensionAPI) => {
         },
         onError: (err) => {
           if (err.message === "Compaction cancelled" || err.message === "Already compacted") {
-            ctx.ui.notify("Nothing to compact", "info");
+            ctx.ui.notify("Nothing to compact", "warning");
           } else {
             ctx.ui.notify(`Compaction failed: ${err.message}`, "error");
           }

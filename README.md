@@ -6,6 +6,10 @@ Algorithmic conversation compactor for [Pi](https://github.com/badlogic/pi-mono)
 
 Inspired by [VCC](https://github.com/lllyasviel/VCC) **(View-oriented Conversation Compiler)**.
 
+## Demo
+
+![pi-vcc demo](./demo.gif)
+
 ## Why pi-vcc
 
 |  | Pi default | pi-vcc |
@@ -14,7 +18,7 @@ Inspired by [VCC](https://github.com/lllyasviel/VCC) **(View-oriented Conversati
 | **Determinism** | Non-deterministic, can hallucinate | Same input = same output, always |
 | **Token reduction** | Varies | 35-99% on real sessions (higher on longer sessions) |
 | **Compaction latency** | Waits for LLM call | 30-470ms, no API calls |
-| **History after compaction** | Gone — agent only sees summary | Fully searchable via `vcc_recall` |
+| **History after compaction** | Gone — agent only sees summary | Active lineage searchable via `vcc_recall` (`scope:"all"` available) |
 | **Repeated compactions** | Each rewrite risks losing more | Sections merge and accumulate |
 | **Cost** | Burns tokens on summarization call | Zero — no API calls |
 | **Structure** | Free-form prose | Brief transcript + 4 semantic sections |
@@ -39,7 +43,8 @@ Measured on real session JSONLs under `~/.pi/agent/sessions` (chars = rendered m
 - **Brief transcript** — chronological conversation flow, each tool call collapsed to a one-liner with `(#N)` refs, text truncated to keep it compact
 - **5 semantic sections** — session goal, files & changes, commits, outstanding context, user preferences
 - **Bounded merge** — rolling sections re-capped after merge instead of growing unbounded
-- **Lossless recall** — `vcc_recall` reads raw session JSONL, so old history stays searchable across compactions
+- **Lossless recall** — `vcc_recall` reads raw session JSONL, so active-lineage history stays searchable across compactions
+- **Scoped recall** — default search is active lineage; use `scope:"all"` / `scope:all` to intentionally search across all lineages
 - **Regex search** — `vcc_recall` supports regex patterns (`hook|inject`, `fail.*build`) and OR-ranked multi-word queries
 - **Result ranking** — search results ranked by term relevance, rare terms weighted higher than common ones
 - **`/pi-vcc-recall`** — slash command to search history directly, results shown as collapsible message and auto-fed to agent as context
@@ -68,9 +73,10 @@ pi -e https://github.com/sting8k/pi-vcc
 
 Once installed, pi-vcc registers a `session_before_compact` hook.
 
-- When Pi triggers a compaction, pi-vcc supplies the summary.
-- To trigger compaction manually, run `/pi-vcc`.
-- To search older history after compaction, use `vcc_recall`.
+- Run `/pi-vcc` to trigger pi-vcc compaction manually.
+- By default, `/compact` and auto-threshold compactions still go through pi core (LLM-based). Set `overrideDefaultCompaction: true` in the config to let pi-vcc handle all compaction paths.
+- To search older active-lineage history after compaction, use `vcc_recall`.
+- To intentionally search across all lineages, pass `scope:"all"` to `vcc_recall` or run `/pi-vcc-recall <query> scope:all`.
 - To search and feed results to agent yourself, run `/pi-vcc-recall <query> [page:N]`.
   - Tip: type `/recall` and Pi will autocomplete to `/pi-vcc-recall`.
 
@@ -134,17 +140,24 @@ Sections appear only when relevant — a session with no git commits won't have 
 
 Pi's default compaction discards old messages permanently. After compaction, the agent only sees the summary.
 
-`vcc_recall` bypasses this by reading the raw session JSONL file directly. It parses every message entry in the file, regardless of how many compactions have happened.
+`vcc_recall` bypasses this by reading the raw session JSONL file directly. By default it searches only the active conversation lineage, regardless of how many compactions have happened. Use `scope:"all"` only when you intentionally want to include off-lineage branches.
 
 ### Search
 
 Queries support **regex** and **multi-word OR logic** ranked by relevance:
 
 ```
-vcc_recall({ query: "auth token" })           // OR search, ranked
-vcc_recall({ query: "auth token", page: 2 })  // paginated (5 results/page)
-vcc_recall({ query: "hook|inject" })           // regex pattern
-vcc_recall({ query: "fail.*build" })           // regex pattern
+vcc_recall({ query: "auth token" })                         // active-lineage OR search, ranked
+vcc_recall({ query: "auth token", page: 2 })                // paginated (5 results/page)
+vcc_recall({ query: "hook|inject" })                         // regex pattern
+vcc_recall({ query: "fail.*build" })                         // regex pattern
+vcc_recall({ query: "auth token", scope: "all" })           // search all lineages
+```
+
+Manual slash command:
+
+```
+/pi-vcc-recall auth token scope:all
 ```
 
 ### Browse
@@ -153,6 +166,7 @@ Without a query, returns the last 25 entries as brief summaries:
 
 ```
 vcc_recall()
+vcc_recall({ scope: "all" })  // browse recent entries across all lineages
 ```
 
 ### Expand
@@ -160,7 +174,8 @@ vcc_recall()
 Returns full untruncated content for specific indices found via search:
 
 ```
-vcc_recall({ expand: [41, 42] })
+vcc_recall({ expand: [41, 42] })                 // active-lineage expand
+vcc_recall({ expand: [41, 42], scope: "all" })   // expand across all lineages
 ```
 
 Typical workflow: **search → find relevant entry indices → expand those indices for full content**.
@@ -176,15 +191,19 @@ Typical workflow: **search → find relevant entry indices → expand those indi
 5. **Format** — render into bracketed sections + transcript
 6. **Merge** — if previous summary exists: sticky sections merge, volatile sections replace, transcript rolls
 
-## Debug
+## Config
 
-Debug logging is off by default. Enable it in `~/.pi/agent/pi-vcc-config.json`:
+Config lives at `~/.pi/agent/pi-vcc-config.json` (auto-scaffolded on first load with safe defaults):
 
 ```json
-{ "debug": true }
+{
+  "overrideDefaultCompaction": false,
+  "debug": false
+}
 ```
 
-When enabled, each compaction writes detailed info to `/tmp/pi-vcc-debug.json` — message counts, cut boundary, summary preview, sections.
+- **`overrideDefaultCompaction`** *(default `false`)*: when `false`, pi-vcc only runs for `/pi-vcc`; `/compact` and auto-threshold compactions fall through to pi core. Set `true` to make pi-vcc handle all compaction paths.
+- **`debug`** *(default `false`)*: when `true`, each compaction writes detailed info to `/tmp/pi-vcc-debug.json` — message counts, cut boundary, summary preview, sections.
 
 ## Related Work
 

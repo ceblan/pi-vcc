@@ -9,7 +9,7 @@ const TRUNCATE_ASSISTANT = 200;
 // Strip common self-reflective assistant prefixes that carry no semantic info.
 // Conservative list: only removes the leading filler, preserves the actual content.
 const SELF_TALK_PREFIX_RE =
-  /^\s*(?:hmm|wait|actually|oh|okay|ok|well|so|let me (?:try|check|see|think|look))[,.!\s-]+/i;
+  /^\s*(?:hmm|wait|actually|oh|okay|ok|well|so)[,.!\s-]+/i;
 
 // ── noise filtering ──
 
@@ -216,6 +216,31 @@ export const buildBriefSections = (blocks: NormalizedBlock[]): BriefLine[] => {
       }
     }
     sec.lines = out;
+  }
+
+  // Cap tool calls per [assistant] turn — keep tail (latest actions tend to
+  // be the deciding edits/writes; head is usually exploration noise).
+  const TOOL_CALLS_PER_TURN = 8;
+  for (const sec of sections) {
+    if (sec.header !== "[assistant]") continue;
+    const toolIdxs = sec.lines
+      .map((l, i) => (l.startsWith("* ") ? i : -1))
+      .filter((i) => i >= 0);
+    if (toolIdxs.length <= TOOL_CALLS_PER_TURN) continue;
+    const dropCount = toolIdxs.length - TOOL_CALLS_PER_TURN;
+    const dropSet = new Set(toolIdxs.slice(0, dropCount));
+    const firstKeptToolIdx = toolIdxs[dropCount];
+    const next: string[] = [];
+    let inserted = false;
+    for (let i = 0; i < sec.lines.length; i++) {
+      if (dropSet.has(i)) continue;
+      if (!inserted && i === firstKeptToolIdx) {
+        next.push(`* (${dropCount} earlier tool-call entries omitted)`);
+        inserted = true;
+      }
+      next.push(sec.lines[i]);
+    }
+    sec.lines = next;
   }
 
   // Collapse consecutive identical [tool_error] sections (same tool, same body).
