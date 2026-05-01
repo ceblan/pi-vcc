@@ -21,6 +21,7 @@ export interface SessionSearchOptions {
  * Discover Pi session files using SessionManager.list() / SessionManager.listAll()
  * static methods and return SessionInfo[] with optional filtering/sorting.
  */
+// @lat: [[core#Core Modules#session-finder.ts]]
 export const findSessions = async (
   options: SessionSearchOptions,
 ): Promise<SessionInfo[]> => {

@@ -10,6 +10,7 @@ const DEFAULT_MAX_RESULTS = 30;
 const DEFAULT_MAX_PER_SESSION = 3;
 const DEFAULT_PAGE_SIZE = 10;
 
+// @lat: [[hooks-commands-tools#Hooks, Commands, and Tools#Tool: search.ts]]
 export const registerSearchTool = (pi: ExtensionAPI) => {
   pi.registerTool({
     name: "vcc_search",

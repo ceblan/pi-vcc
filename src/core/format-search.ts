@@ -42,6 +42,7 @@ export interface FormattedSearchResult {
  * Take ripgrep matches + session info and produce formatted output grouped by project.
  * Each session appears once with its prompt (firstMessage), grouped under its project (cwd).
  */
+// @lat: [[core#Core Modules#format-search.ts]]
 export const formatSearchOutput = (
   matches: RgMatch[],
   sessionInfos: Map<string, SessionInfo>,

@@ -390,6 +390,7 @@ class VccSearchOverlay {
 // Public API
 // ---------------------------------------------------------------------------
 
+// @lat: [[hooks-commands-tools#Hooks, Commands, and Tools#UI: search-overlay.ts]]
 export async function showSearchOverlay(
   result: FormattedSearchResult,
   ctx: ExtensionCommandContext,

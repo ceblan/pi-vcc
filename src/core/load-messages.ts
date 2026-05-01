@@ -7,6 +7,7 @@ export interface LoadedMessages {
   rawMessages: Message[];
 }
 
+// @lat: [[core#Core Modules#load-messages.ts]]
 export const loadAllMessages = (sessionFile: string, full: boolean): LoadedMessages => {
   const content = readFileSync(sessionFile, "utf-8");
   const entries: any[] = [];

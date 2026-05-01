@@ -62,6 +62,7 @@ const parseArgs = (args: string): ParsedArgs => {
   return result;
 };
 
+// @lat: [[hooks-commands-tools#Hooks, Commands, and Tools#Command: vcc-search.ts]]
 export const registerVccSearchCommand = (pi: ExtensionAPI) => {
   pi.registerCommand("vcc-search", {
     description: "Search across all sessions. Usage: /vcc-search <query> [--scope project] [--page N]",

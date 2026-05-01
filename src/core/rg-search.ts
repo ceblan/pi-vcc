@@ -43,6 +43,7 @@ export interface RgSearchOptions {
  * Locate the ripgrep binary on the system.
  * Returns the path string if found, null otherwise.
  */
+// @lat: [[core#Core Modules#rg-search.ts]]
 export const findRgPath = (): string | null => {
   // Try common paths first
   for (const p of ["/usr/bin/rg", "/usr/local/bin/rg"]) {

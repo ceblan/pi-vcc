@@ -16,6 +16,7 @@ async function exportToHtml(sessionPath: string, outputPath: string): Promise<st
   );
 }
 
+// @lat: [[core#Core Modules#open-browser.ts]]
 export async function openSessionInBrowser(row: FormattedSessionRow): Promise<void> {
   const tmpPath = join(tmpdir(), `pi-vcc-session-${row.fullSessionId}.html`);
   const htmlPath = await exportToHtml(row.path, tmpPath);

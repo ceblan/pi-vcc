@@ -42,5 +42,5 @@ Core modules cover normalize, filter, build-sections, format, summarize. Extract
 - [[core]] — Core compaction modules  
 - [[extract]] — Extraction modules
 - [[hooks-commands-tools]] — Hook, command, and tool registration
-- [[journals]] — Session journals
 - [[tests]] — Test suite documentation
+- [[last-commit]] — Commit tracker for documentator
