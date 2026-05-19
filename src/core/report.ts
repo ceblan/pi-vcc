@@ -1,4 +1,4 @@
-import type { Message } from "@mariozechner/pi-ai";
+import type { Message } from "@earendil-works/pi-ai";
 import { buildSections } from "./build-sections";
 import { clip } from "./content";
 import { normalize } from "./normalize";
@@ -192,7 +192,7 @@ const probesOf = (messages: Message[], summary: string): RecallProbe[] => {
         sourceText,
         query,
         summaryMentioned: matchesQuery(summary, query),
-        recallHits: searchEntries(rendered, query).length,
+        recallHits: searchEntries(rendered, messages, query).length,
       };
     })
     .filter((probe): probe is RecallProbe => probe !== null);
