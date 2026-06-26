@@ -12,30 +12,30 @@ Inspired by [VCC](https://github.com/lllyasviel/VCC) **(View-oriented Conversati
 
 ## Why pi-vcc
 
-|  | Pi default | pi-vcc |
-|---|---|---|
-| **Method** | LLM-generated summary | Algorithmic extraction, no LLM |
-| **Determinism** | Non-deterministic, can hallucinate | Same input = same output, always |
-| **Token reduction** | Varies | 35-99% on real sessions (higher on longer sessions) |
-| **Compaction latency** | Waits for LLM call | 30-470ms, no API calls |
-| **History after compaction** | Gone — agent only sees summary | Active lineage searchable via `vcc_recall` (`scope:"all"` available) |
-| **Repeated compactions** | Each rewrite risks losing more | Sections merge and accumulate |
-| **Cost** | Burns tokens on summarization call | Zero — no API calls |
-| **Structure** | Free-form prose | Brief transcript + 4 semantic sections |
+|                              | Pi default                         | pi-vcc                                                               |
+|------------------------------|------------------------------------|----------------------------------------------------------------------|
+| **Method**                   | LLM-generated summary              | Algorithmic extraction, no LLM                                       |
+| **Determinism**              | Non-deterministic, can hallucinate | Same input = same output, always                                     |
+| **Token reduction**          | Varies                             | 35-99% on real sessions (higher on longer sessions)                  |
+| **Compaction latency**       | Waits for LLM call                 | 30-470ms, no API calls                                               |
+| **History after compaction** | Gone — agent only sees summary     | Active lineage searchable via `vcc_recall` (`scope:"all"` available) |
+| **Repeated compactions**     | Each rewrite risks losing more     | Sections merge and accumulate                                        |
+| **Cost**                     | Burns tokens on summarization call | Zero — no API calls                                                  |
+| **Structure**                | Free-form prose                    | Brief transcript + 4 semantic sections                               |
 
 ### Real session metrics
 
 Measured on real session JSONLs under `~/.pi/agent/sessions` (chars = rendered message text).
 
-| Session | Messages | Before | After | Reduction | Time |
-|---|---|---|---|---|---|
-| Session A | 2,943 | 997,162 | 7,959 | 99.2% | 64ms |
-| Session B | 1,703 | 428,334 | 7,762 | 98.2% | 29ms |
-| Session C | 1,657 | 424,183 | 9,577 | 97.7% | 54ms |
-| Session D | 1,004 | 2,258,477 | 4,439 | 99.8% | 30ms |
-| Session E | 486 | 295,006 | 11,163 | 96.2% | 30ms |
-| Session F | 46 | 5,234 | 3,364 | 35.7% | 5ms |
-| Session G | 27 | 8,595 | 2,489 | 71.0% | 2ms |
+| Session   | Messages | Before    | After  | Reduction | Time |
+|-----------|----------|-----------|--------|-----------|------|
+| Session A | 2,943    | 997,162   | 7,959  | 99.2%     | 64ms |
+| Session B | 1,703    | 428,334   | 7,762  | 98.2%     | 29ms |
+| Session C | 1,657    | 424,183   | 9,577  | 97.7%     | 54ms |
+| Session D | 1,004    | 2,258,477 | 4,439  | 99.8%     | 30ms |
+| Session E | 486      | 295,006   | 11,163 | 96.2%     | 30ms |
+| Session F | 46       | 5,234     | 3,364  | 35.7%     | 5ms  |
+| Session G | 27       | 8,595     | 2,489  | 71.0%     | 2ms  |
 
 ## Features
 
@@ -121,14 +121,14 @@ Sections appear only when relevant — a session with no git commits won't have 
 
 **Sections:**
 
-| Section | Description |
-|---|---|
-| `[Session Goal]` | Initial goal + scope changes (regex-based extraction) |
-| `[Files And Changes]` | Modified/created files from tool calls (capped, paths trimmed to common root) |
-| `[Commits]` | Git commits made during the session (last 8, hash + first line) |
-| `[Outstanding Context]` | Unresolved items — errors, pending questions |
-| `[User Preferences]` | Regex-extracted from user messages (`always`, `never`, `prefer`...) |
-| Brief transcript | Chronological conversation flow — rolling window of ~120 recent lines, tool calls collapsed to one-liners with `(#N)` refs |
+| Section                 | Description                                                                                                                |
+|-------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| `[Session Goal]`        | Initial goal + scope changes (regex-based extraction)                                                                      |
+| `[Files And Changes]`   | Modified/created files from tool calls (capped, paths trimmed to common root)                                              |
+| `[Commits]`             | Git commits made during the session (last 8, hash + first line)                                                            |
+| `[Outstanding Context]` | Unresolved items — errors, pending questions                                                                               |
+| `[User Preferences]`    | Regex-extracted from user messages (`always`, `never`, `prefer`...)                                                        |
+| Brief transcript        | Chronological conversation flow — rolling window of ~120 recent lines, tool calls collapsed to one-liners with `(#N)` refs |
 
 **Merge policy:**
 - `Session Goal`, `User Preferences`: concise sticky sections

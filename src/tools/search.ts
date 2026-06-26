@@ -1,5 +1,5 @@
 import { Type } from "@sinclair/typebox";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { RenderedEntry } from "../core/render-entries";
 import { findSessions } from "../core/session-finder";
 import { rgSearch, extractSessionIdFromPath } from "../core/rg-search";

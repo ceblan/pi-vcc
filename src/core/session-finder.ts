@@ -1,4 +1,4 @@
-import { SessionManager, type SessionInfo } from "@mariozechner/pi-coding-agent";
+import { SessionManager, type SessionInfo } from "@earendil-works/pi-coding-agent";
 import { extractSessionIdFromPath } from "./rg-search";
 
 /** Options controlling which sessions to discover. */

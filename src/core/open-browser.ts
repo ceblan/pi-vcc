@@ -6,7 +6,7 @@ import type { FormattedSessionRow } from "./format-search";
 async function exportToHtml(sessionPath: string, outputPath: string): Promise<string> {
   // Deep import — Pi does not re-export exportFromFile from its public index.
   // Resolve the package directory first, then navigate to the internal module.
-  const piPkgMain = require.resolve("@mariozechner/pi-coding-agent");
+  const piPkgMain = require.resolve("@earendil-works/pi-coding-agent");
   const piPkgDir = piPkgMain.replace(/\/dist\/.*$/, "");
   const exportHtmlPath = join(piPkgDir, "dist", "core", "export-html", "index.js");
   const mod = await import(exportHtmlPath);

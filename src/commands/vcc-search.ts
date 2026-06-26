@@ -1,6 +1,6 @@
 import { writeFileSync } from "fs";
 import { join } from "path";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { findSessions } from "../core/session-finder";
 import { rgSearch, extractSessionIdFromPath } from "../core/rg-search";
 import { formatSearchOutput, formatSearchResultText } from "../core/format-search";

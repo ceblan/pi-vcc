@@ -1,5 +1,5 @@
 import type { RgMatch } from "./rg-search";
-import type { SessionInfo } from "@mariozechner/pi-coding-agent";
+import type { SessionInfo } from "@earendil-works/pi-coding-agent";
 import type { RenderedEntry } from "./render-entries";
 
 /** A session row in the project-grouped output table */
